@@ -17,12 +17,12 @@ public:
 private:
     static constexpr int NMAX = (int)1e5 + 5;
     int nr_storages, nr_queries;
-    vector<int> adj[NMAX];
-    vector<int> dfs;
-    vector<pair<int, int>> queries;
-    vector<bool> visited;
-    vector<int> number_of_children;
-    vector<int> pos;
+    vector<int> adj[NMAX];          // adjancency list
+    vector<int> dfs;                // dfs traversal
+    vector<pair<int, int>> queries; // queries[i] = {src, steps}
+    vector<bool> visited;           // visited[i] = true if node i was visited
+    vector<int> number_of_children; // number_of_children[i] = number of children of node i
+    vector<int> pos;                // pos[i] = position of node i in dfs traversal
 
     void read_input()
     {
@@ -45,20 +45,22 @@ private:
 
     void DFS(int src)
     {
-        // mark the current node as discovered
+        // Mark the current node as discovered
         visited[src] = true;
 
-        // add to dfs
+        // Add it to dfs
         dfs.push_back(src);
 
-        // do for every edge (v, u)
+        // For each node `u` adjacent to `src`
         for (int u : adj[src])
         {
             // if `u` is not yet discovered
             if (!visited[u])
             {
-                // update number of children
+                // Make dfs from `u`
                 DFS(u);
+
+                // Update number of children
                 number_of_children[src] += number_of_children[u] + 1;
             }
         }
@@ -67,29 +69,34 @@ private:
     vector<int> get_result()
     {
         vector<int> result;
-        // put false in visited vector
+
+        // Initialize visited, number_of_children and pos
         visited = vector<bool>(nr_storages + 1, false);
-        // put 0 in number_of_children vector
         number_of_children = vector<int>(nr_storages + 1, 0);
-        // put 0 in pos vector
         pos = vector<int>(nr_storages + 1, 0);
 
-        // Make dfs from 1
+        // Make dfs from first node
         DFS(1);
 
+        // Create the pos array
+        // pos[i] = position of node i in dfs traversal
         for (int i = 0; i < dfs.size(); i++)
         {
             pos[dfs[i]] = i;
         }
 
+        // For each query
         for (int i = 0; i < nr_queries; i++)
         {
+            // Get the source and the number of steps
             int src = queries[i].first;
             int steps = queries[i].second;
 
-            // If pos is outside the number of children it has, then its -1
+            // If we make more than `number_of_children[src]` steps then we will get out of
+            // the subtree of `src`, so the destination will be -1
             int dest = steps > number_of_children[src] ? -1 : dfs[pos[src] + steps];
 
+            // Add the destination to the result
             result.push_back(dest);
         }
 
