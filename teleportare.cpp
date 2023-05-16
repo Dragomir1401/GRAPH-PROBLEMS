@@ -5,18 +5,22 @@
 #include <vector>
 #include <queue>
 using namespace std;
-struct elem
+struct Edge
 {
     int node;
     long long cost;
-    bool operator<(const elem &other) const
+
+    bool operator<(const Edge &other) const
     {
         return cost > other.cost;
     }
 };
+
 static constexpr int NMAX = (int)1e5 + 5;
 static constexpr int MAX_PERIOD = (int)8;
-long long dp[420][NMAX];
+static constexpr long long DP_MAX = 1e12;
+static constexpr int COST_MOD = 60;
+long long dp[COST_MOD][NMAX];
 
 class Task
 {
@@ -28,98 +32,148 @@ public:
     }
 
 private:
-    int nr_nodes, nr_edges, nr_special_edges;
-    vector<elem> adj[NMAX];                        // adjancency list for normal edges
-    vector<int> special_adj[NMAX][MAX_PERIOD + 2]; // adjancency list for special edges
-    priority_queue<elem> pq;
+    int nr_nodes, nr_Edges, nr_special_Edges;
+    vector<Edge> adj[NMAX]; // adjancency list for normal Edges
+    // vector<int> special_adj[MAX_PERIOD + 1][NMAX]; // adjancency list for special Edges
+    vector<int> special_adj[MAX_PERIOD + 1][NMAX];
+    priority_queue<Edge> pq;
 
     void read_input()
     {
         ifstream fin("teleportare.in");
-        fin >> nr_nodes >> nr_edges >> nr_special_edges;
+        fin >> nr_nodes >> nr_Edges >> nr_special_Edges;
 
-        // Read normal edges
-        for (int i = 1, x, y, z; i <= nr_edges; i++)
+        // Read normal Edges
+        for (int i = 1, x, y, z; i <= nr_Edges; i++)
         {
+            // Node, neighbour, edge cost
             fin >> x >> y >> z;
             adj[x].push_back({y, z});
             adj[y].push_back({x, z});
         }
 
-        // Read special edges
-        for (int i = 1, x, y, z; i <= nr_special_edges; i++)
+        // Read special Edges
+        for (int i = 1, x, y, z; i <= nr_special_Edges; i++)
         {
+            // Node, neighbour, period
             fin >> x >> y >> z;
-            special_adj[x][z].push_back(y);
-            special_adj[y][z].push_back(x);
+            special_adj[z][x].push_back(y);
+            special_adj[z][y].push_back(x);
         }
 
         fin.close();
     }
 
-    long long get_result()
+    void initialise_dp()
     {
-
-        for (int i = 0; i < 420; i++)
+        // Initialise dp
+        for (int i = 0; i < COST_MOD; i++)
         {
             for (int j = 1; j <= nr_nodes; j++)
             {
-                dp[i][j] = 1e18;
+                dp[i][j] = DP_MAX;
             }
         }
 
-        pq.push({1, 0});
         dp[0][1] = 0;
+    }
 
-        while (!pq.empty())
-        {
-            int node = pq.top().node;
-            long long dist = pq.top().cost;
-
-            pq.pop();
-            if (node == nr_nodes)
-            {
-                break;
-            }
-
-            for (auto &elem : adj[node])
-            {
-                int neigh = elem.node;
-                long long cost = elem.cost;
-
-                if (dp[(dist + cost) % 420][neigh] > dp[dist % 420][node] + cost)
-                {
-                    dp[(dist + cost) % 420][neigh] = dp[dist % 420][node] + cost;
-                    pq.push({neigh, dp[(dist + cost) % 420][neigh]});
-                }
-            }
-
-            for (int period = 1; period <= MAX_PERIOD; period++)
-            {
-                if (dist % period == 0)
-                {
-                    for (int i = 0; i < special_adj[node][period].size(); i++)
-                    {
-                        int neigh = special_adj[node][period][i];
-                        if (dp[(dist + 1) % 420][neigh] > dp[dist % 420][node] + 1)
-                        {
-                            dp[(dist + 1) % 420][neigh] = dp[dist % 420][node] + 1;
-                            pq.push({neigh, dp[(dist + 1) % 420][neigh]});
-                        }
-                    }
-                }
-            }
-        }
-
-        long long min = LLONG_MAX;
-        for (int i = 0; i < 420; i++)
+    long long find_min_dp()
+    {
+        // Find the minimum dp value
+        long long min = DP_MAX;
+        for (long unsigned int i = 0; i < COST_MOD; i++)
         {
             if (dp[i][nr_nodes] < min)
             {
                 min = dp[i][nr_nodes];
             }
         }
+
         return min;
+    }
+
+    void update_dp_normal_edge(int node, long long cost)
+    {
+        for (auto &Edge : adj[node])
+        {
+            // Get the normal edge node and cost
+            int neigh = Edge.node;
+            long long edge_cost = Edge.cost;
+
+            // Calculate the new cost and dp
+            long long new_cost = cost + edge_cost;
+            int rest = new_cost % COST_MOD;
+            long long old_dp = dp[rest][neigh];
+            long long new_dp = dp[cost % COST_MOD][node] + edge_cost;
+
+            // Check if we can improve dp value
+            if (old_dp > new_dp)
+            {
+                // Update dp and push the new node in the queue
+                dp[rest][neigh] = new_dp;
+                pq.push({neigh, new_dp});
+            }
+        }
+    }
+
+    void update_dp_special_edge(int node, long long cost)
+    {
+        // Check if we can use a special edge
+        for (int period = 1; period <= MAX_PERIOD; period++)
+        {
+
+            // If we are at a step that is a multiple of the period
+            if (cost % period == 0)
+            {
+                for (long unsigned int i = 0; i < special_adj[period][node].size(); i++)
+                {
+                    // Get the special edge node and cost
+                    int neigh = special_adj[period][node][i];
+                    int teleport_cost = 1;
+
+                    // Calculate the new cost and dp
+                    long long new_cost = cost + teleport_cost;
+                    int rest = new_cost % COST_MOD;
+                    long long old_dp = dp[rest][neigh];
+                    long long new_dp = dp[cost % COST_MOD][node] + teleport_cost;
+
+                    // Check if we can improve dp value
+                    if (old_dp > new_dp)
+                    {
+                        // Update dp and push the new node in the queue
+                        dp[rest][neigh] = new_dp;
+                        pq.push({neigh, new_dp});
+                    }
+                }
+            }
+        }
+    }
+
+    long long get_result()
+    {
+
+        initialise_dp();
+
+        pq.push({1, 0});
+
+        while (!pq.empty())
+        {
+            int node = pq.top().node;
+            long long cost = pq.top().cost;
+            pq.pop();
+
+            if (node == nr_nodes)
+            {
+                break;
+            }
+
+            update_dp_normal_edge(node, cost);
+
+            update_dp_special_edge(node, cost);
+        }
+
+        return find_min_dp();
     }
 
     void
