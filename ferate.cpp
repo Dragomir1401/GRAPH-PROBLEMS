@@ -17,15 +17,15 @@ public:
 private:
     static constexpr int NMAX = (int)1e5 + 5;
     int nr_stations, nr_paths, source;
-    vector<int> adj[NMAX];                 // adjancency list
-    vector<int> adj_condense[NMAX];        // adjancency list for condensed graph
-    map<int, int> scc_containing_node_map; // map node to scc containing it
-    vector<int> parent;                    // parent[i] = parent of node i in dfs tree
-    vector<bool> vis;                      // vis[i] = true if node i was visited
-    vector<int> low_link;                  // low_link[i] = lowest timestamp of node i
-    stack<int> in_stack;                   // stack used in tarjan
-    vector<vector<int>> all_sccs;          // all sccs in the graph
-    int timestamp = 0;                     // timestamp used in tarjan
+    vector<int> adj[NMAX];                           // adjancency list
+    vector<int> adj_condense[NMAX];                  // adjancency list for condensed graph
+    unordered_map<int, int> scc_containing_node_map; // map node to scc containing it
+    vector<int> parent;                              // parent[i] = parent of node i in dfs tree
+    vector<bool> vis;                                // vis[i] = true if node i was visited
+    vector<int> low_link;                            // low_link[i] = lowest timestamp of node i
+    stack<int> in_stack;                             // stack used in tarjan
+    vector<vector<int>> all_sccs;                    // all sccs in the graph
+    int timestamp = 0;                               // timestamp used in tarjan
 
     void read_input()
     {
@@ -112,7 +112,7 @@ private:
 
         int nr_adding_edges = 0;
 
-        // Get scc containing source
+        // // Get scc containing source
         int scc_src = scc_containing_node_map[source];
 
         // Count the number of sccs that have in_degree 0
@@ -146,10 +146,10 @@ private:
     }
 
     void
-    print_output(int min_switches)
+    print_output(int result)
     {
         ofstream fout("ferate.out");
-        fout << min_switches << '\n';
+        fout << result << '\n';
         fout.close();
     }
 };
