@@ -54,7 +54,7 @@ private:
         // For each node `u` adjacent to `src`
         for (int u : adj[src])
         {
-            // if `u` is not yet discovered
+            // If `u` is not yet discovered
             if (!visited[u])
             {
                 // Make dfs from `u`
