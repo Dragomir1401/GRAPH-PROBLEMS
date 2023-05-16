@@ -100,7 +100,6 @@ private:
 
     void start_with_first_dataset(deque<pair<int, int>> &q, vector<int> &in_degree, int &min_switches1)
     {
-        int last_task = 0;
         int last_data_set_needed = 0;
 
         while (!q.empty())
@@ -148,8 +147,7 @@ private:
             // Update the queue after we remove a node
             update_queue(q, in_degree, task);
 
-            // Update the last task and the last data set needed
-            last_task = task;
+            // Update the last data set needed
             last_data_set_needed = set_needed;
         }
     }
@@ -157,7 +155,6 @@ private:
     void start_with_second_dataset(deque<pair<int, int>> &q_copy, vector<int> &in_degree_copy,
                                    int &min_switches2)
     {
-        int last_task = 0;
         int last_data_set_needed = 0;
 
         while (!q_copy.empty())
@@ -205,8 +202,7 @@ private:
             // Update the queue after we remove a node
             update_queue(q_copy, in_degree_copy, task);
 
-            // Update the last task and the last data set needed
-            last_task = task;
+            // Update the last data set needed
             last_data_set_needed = data_set_needed[task];
         }
     }
