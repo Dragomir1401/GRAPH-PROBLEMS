@@ -104,7 +104,7 @@ public:
 private:
 	int nr_nodes, nr_Edges, nr_special_Edges;
 	// adjancency list for normal Edges
-	vector<Edge> adj[NMAX];
+	vector<pair<int, int>> adj[NMAX];
 	// adjancency list for special Edges
 	vector<pair<int, int>> special_adj[NMAX];
 	BinaryHeap pq;
@@ -166,11 +166,11 @@ private:
 
 	void update_dp_normal_edge(int node, long cost, int cost_mod)
 	{
-		for (const auto &Edge : adj[node])
+		for (int i = 0; i < (int)adj[node].size(); i++)
 		{
 			// Get the normal edge node and cost
-			int neigh = Edge.node;
-			long edge_cost = Edge.cost;
+			int neigh = adj[node][i].first;
+			long edge_cost = adj[node][i].second;
 
 			// Calculate the new cost and dp
 			long new_cost = cost + edge_cost;
@@ -179,12 +179,14 @@ private:
 			long new_dp = dp[cost_mod][node] + edge_cost;
 
 			// Check if we can improve dp value
-			if (old_dp > new_dp)
+			if (old_dp <= new_dp)
 			{
-				// Update dp and push the new node in the queue
-				dp[rest][neigh] = new_dp;
-				pq.push({neigh, new_dp});
+				continue;
 			}
+
+			// Update dp and push the new node in the queue
+			dp[rest][neigh] = new_dp;
+			pq.push({neigh, new_dp});
 		}
 	}
 
@@ -202,42 +204,25 @@ private:
 			int period_cost = special_adj[node][i].second;
 
 			// Check if we can use this period
-			if (cost % period_cost == 0)
+			if (cost % period_cost != 0)
 			{
-				// Calculate the new dp
-				long old_dp = dp[rest][neigh];
-				long new_dp = dp[cost_mod][node] + teleport_cost;
-
-				// Check if we can improve dp value
-				if (old_dp > new_dp)
-				{
-					// Update dp and push the new node in the queue
-					dp[rest][neigh] = new_dp;
-					pq.push({neigh, new_dp});
-				}
+				continue;
 			}
+
+			// Calculate the new dp
+			long old_dp = dp[rest][neigh];
+			long new_dp = dp[cost_mod][node] + teleport_cost;
+
+			// Check if we can improve dp value
+			if (old_dp <= new_dp)
+			{
+				continue;
+			}
+
+			// Update dp and push the new node in the queue
+			dp[rest][neigh] = new_dp;
+			pq.push({neigh, new_dp});
 		}
-		// {
-		// 	// Get the special edge node and period
-		// 	int neigh = period.first;
-		// 	int period_cost = period.second;
-
-		// 	// Check if we can use this period
-		// 	if (cost % period_cost == 0)
-		// 	{
-		// 		// Calculate the new dp
-		// 		long old_dp = dp[rest][neigh];
-		// 		long new_dp = dp[cost_mod][node] + teleport_cost;
-
-		// 		// Check if we can improve dp value
-		// 		if (old_dp > new_dp)
-		// 		{
-		// 			// Update dp and push the new node in the queue
-		// 			dp[rest][neigh] = new_dp;
-		// 			pq.push({neigh, new_dp});
-		// 		}
-		// 	}
-		// }
 	}
 
 	long get_result()
