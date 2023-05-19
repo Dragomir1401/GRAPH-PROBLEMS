@@ -1,0 +1,471 @@
+______________________________
+|                            |
+|   Copyright                |
+|      Dragomir Andrei 2023  |
+|                            |
+|____________________________|
+
+----------------------------------------------------------------------------
+Nume: Dragomir Andrei
+Grupa: 322CA
+
+ALGORITHMS DESIGN
+
+----------------------------------------------------------------------------
+------------------------------------GRAPHS----------------------------------
+----------------------------------------------------------------------------
+
+								CONTENT
+
+	- supercomputer.cpp, ferate.cpp, teleportare.cpp, magazin.cpp
+	- Makefile
+	- README
+
+
+----------------------------------------------------------------------------
+
+____________Description___________
+
+
+	The project implements 4 graph solutions to 4 problems:
+
+
+        - Supercomputer                  - Ferate
+
+        - Magazin                        - Teleportare
+
+
+-----------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------
+
+____________Implementation____________
+
+
+    ---------------------------SUPERCOMPUTER--------------------------
+
+    COMPLEXITY: O(m + n)
+
+    IDEA: Double ended queue with sorted pairs by dataset needed to take
+          from the front or the back in order to make the least amount
+          of context switches.
+
+        We compute the in degree of each node and we add the nodes with
+    in degree 0 in the queue in the first place. Then we make a copy of
+    the queue created and the in degree array. We use the copy to start
+    with a node that needs the first dataset and then with the copy
+    we start with a node that needs the second dataset.
+
+        We iterate through the queue and we take the first element from
+    the front as it should need the first dataset. Then we update the
+    queue like in a classic topological sort algorithm by decreasing
+    the in degree of the nodes that are connected to the current node
+    and adding to the queue the nodes that have in degree 0 after the
+    update. 
+    
+        In the next iteration we try to take an element from the 
+    front of the queue if the last dataset needed was the first one
+    and from the back if the last dataset needed was the second one.
+    We do that until the queue is empty. The result is incremented when
+    the set popped from queue forces us to change the dataset needed.
+
+        We repeat the process with the copy of the queue and start
+    with a set from the back of the queue and find a new minimum.
+
+        The result is of course the minimum between the two results.
+    
+    Example logic for starting wiht the first data set needed:
+
+                +------------------------+
+                |        Code Logic      |
+                +------------------------+
+                            |
+                            v
+                    last_data_set_needed = 0
+            +----------------------------------+
+            |       while (!q.empty())         |
+            |   +--------+                     |
+            |   |        |                     |
+            |   | task=0 |                     |
+            |   | set=0  |                     |
+            |   +--------+                     |   
+            |----------------------------------|
+            |    if (!last_data_set_needed):   | 
+            |   +-----------------------+      |
+            |   |                       |      |
+            |   | pop from front of deq |      |
+            |   | dataset needed = 1    |      |
+            |   +-----------------------+      |
+            |                                  |
+            |                                  |
+            |----------------------------------|
+            |     +-----------------------+    |
+            |     |                       |    |
+            |     | last_data_set_needed? |    |
+            |     +-----------------------+    |
+            |       |   ^                      |
+            |       |   |                      |
+            |       v   |                      |
+            |      ...  |                      |
+            |   +-------------+  +--------+    |
+            |   |             |  |  res++ |    |
+            |   | set= 1      |->|        |    |
+            |   | dataset = 2 |  |        |    |
+            |   +-------------+  +--------+    |
+            |                                  |
+            |   +-------------+  +--------+    |
+            |   |             |  |continue|    |
+            |   | set = 1     |->|        |    |
+            |   | dataset = 1 |  |        |    |
+            |   +-------------+  +--------+    |
+            |----------------------------------|
+            |   +------------------------+      \
+            |   |                        |      |
+            |   | last_data_set_needed=1 |      |
+            |   | -> pop from front      |      |
+            |   +------------------------+      |
+            |                 |                 |
+            |               else                |
+            |                 |                 |
+            |   +------------------------+      |
+            |   |                        |      |
+            |   | last_data_set_needed=2 |      |
+            |   | -> pop from back       |      |
+            |   +------------------------+      |
+            |                                   |
+            |    update_queue(q, in_degree,     |
+            |          task)                    |
+            |-----------------------------------|
+            |                                   |
+            | last_data_set_needed = set_needed |
+            +-----------------------------------+
+
+
+
+
+    ---------------------------FERATE--------------------------------
+
+    COMPLEXITY: O(m + n)
+
+    IDEA: Create condensation graph and find the number of
+            nodes with in degree 0 because they have no possibility
+            to be reached if we dont add a new edge.
+
+        Since we have to connect the source to each other node
+    in the graph we can simplify the problem by eliminating 
+    somehow the nodes that are already connected in between
+    them and would not need additional edges.
+    
+        We can do that by creating a condensation graph 
+    because it would only contain the strongly connected
+    components of the original graph that have already
+    connections in between them.
+
+        Now we need to find the number of nodes with in degree 0
+    because they have no possibility to be reached if we dont add
+    a new edge. We can do that by iterating through the condensation
+    graph and counting the nodes with in degree 0.
+
+        We are storing the key-value pair node-what strongly connected
+    component it belongs to in a map. We are using the unordered map 
+    because it is easier to insert and access the elements in complexity
+    O(1) best case instead of O(logN) for the classic map. It is true that
+    worst case is O(N) but we are fitting the best case most of the time.
+
+        We are increasing the in degree of the strongly connected component
+    when we find a node that is connected to a neighbor that is not in the
+    same strongly connected component. If the source is in one of the strongly
+    connected components with in degree 0 we are decreasing the result by 1
+    because we dont need to add an edge to it since it is the source itself.
+
+
+                 +------------------------------+
+                 |  find_number_of_adding_edges |
+                 +------------------------------+
+                            |
+                            v
+          +---------------------------------------------------+
+          |              Build condensed graph                |
+          |        (Initialize in_degree vector)              |
+          |---------------------------------------------------|
+          |            in_degree[all_sccs.size()+1]           |
+          |                                                   |
+          |                                                   |
+          |                                                   |
+          |       For each node (i=1 to nr_stations)          |
+          |   +-------------------------------------------+   |
+          |   |           Get scc containing node i       |   |
+          |   |-------------------------------------------|   |
+          |   |                                           |   |
+          |   |      For each neighbor in adj[i]          |   |
+          |   |   +-----------------------------------+   |   |
+          |   |   |   Get scc containing neighbor     |   |   |
+          |   |   |-----------------------------------|   |   |
+          |   |   |                                   |   |   |
+          |   |   |   If scc != scc_neigh             |   |   |
+          |   |   |-----------------------------------|   |   |
+          |   |   |                                   |   |   |
+          |   |   |   Increment in_degree[scc_neigh]  |   |   |
+          |   |   +-----------------------------------+   |   |
+          |   |                                           |   |
+          |   +-------------------------------------------+   |
+          |                                                   |
+          |                                                   |
+          |       Initialize nr_adding_edges = 0              |
+          |                                                   |
+          |                                                   |
+          |      Get scc containing source (scc_src)          |
+          |                                                   |
+          |                                                   |
+          |   For each i=1 to all_sccs.size()                 |
+          |  +-----------------------------------------+      |
+          |  |   If in_degree[i] == 0 and i != scc_src |      |
+          |  |-----------------------------------------|      |
+          |  |                                         |      |
+          |  |     Increment nr_adding_edges           |      |
+          |  |                                         |      |
+          |  +-----------------------------------------+      |
+          |                                                   |
+          |                                                   |
+          |         Return nr_adding_edges                    |
+          +---------------------------------------------------+
+
+
+
+
+
+    ---------------------------TELEPORTARE---------------------------
+
+    COMPLEXITY: O(n * m * log(n) + n * k * log(n))
+
+    IDEA: Use Dijkstra and dp to find the minimum cost to reach
+            a node using a cost that is divisible by a given value.
+
+        
+        Since the problem states that we need to find the most efficient
+    road using teleportations or not, the obvious decision is to use 
+    a dynamic programming approach. To assure we find the most efficient
+    road we need to approach the problem like in the Dijsktra algorithm.
+
+        We are going to use a priority queue interface implemented with
+    a binary heap to assure better complexity. The dp is defined as follows:
+
+        dp[i][j] = the minimum cost to reach node j using a cost
+                   that is divisible by i.
+
+        We are going to initialize the dp matrix with the maximum 
+    possible value. The dp has as first dimension the the lowest common 
+    divisor of all the periods that are given with the special edges 
+    input because we have to fit all the possibilities that divide with all 
+    the periods and the smallest number that does that is the lowest common
+    divisor. The second dimension is the number of nodes in the graph.
+
+        As in the Dijkstra algorithm we are going to push the first node
+    in the priority queue with the cost 0. We are going to pop the first
+    element from the priority queue and then check if we can improve the
+    dp using a normal edge or a special edge. If we can improve the dp
+    we are going to also push the new value in the priority queue to
+    continue the algorithm.
+
+        The result is the minimum value from the dp matrix using all
+    the nodes in the computation.
+
+                                +------------------+
+                                |   get_result     |
+                                +------------------+
+                                           |
+                                           v
+                 +--------------------------------+
+                 |        Declare dp              |
+                 |   vector<vector<long>> dp      |
+                 |    (cmmmc_period x NMAX)       |
+                 +--------------------------------+
+                                           |
+                                           v
+                 +--------------------------------+
+                 |     Initialise dp              |
+                 |     initialise_dp(dp)          |
+                 +--------------------------------+
+                                           |
+                                           v
+                 +--------------------------------+
+                 |     Push first node in queue   |
+                 |       pq.push({1, 0})          |
+                 +--------------------------------+
+                                           |
+                                           v
+                 +-----------------------------------+
+                 |           Dijkstra                |
+                 |    while (!pq.empty())            |
+                 |-----------------------------------|
+                 |   int node = pq.top().node        |
+                 |   long cost = pq.top().cost       |
+                 |   pq.pop()                        |
+                 |                                   |
+                 | int cost_mod = cost % cmmmc_period|
+                 |                                   |
+                 |   if (cost > dp[cost_mod][node])  |
+                 |       continue                    |
+                 |                                   |
+                 |   if (node == nr_nodes)           |
+                 |       break                       |
+                 |                                   |
+                 |   update_dp_normal_edge(...)      |
+                 |   update_dp_special_edge(...)     |
+                 +-----------------------------------+
+                                           |
+                                           v
+                 +--------------------------------+
+                 |   Find the minimum dp value    |
+                 |   find_min_dp(dp)              |
+                 +--------------------------------+
+                                           |
+                                           v
+                     +----------------------------+
+                     |      Return min dp         |
+                     +----------------------------+
+
+
+          +-------------------------------------------------+
+          | for (int i = 0; i < adj[node].size(); i++)      |
+          |-------------------------------------------------|
+          |                                                 |
+          |  if (old_dp <= new_dp) {                        |
+          |      continue;                                  |
+          |  }                                              |
+          |                                                 |
+          |  dp[rest][neigh] = new_dp;                      |
+          |  pq.push({neigh, new_dp});                      |
+          | }                                               |
+          +-------------------------------------------------+
+
+
+        
+          +---------------------------------------------------+
+          |for (int i = 0; i < speical_adj[node].size(); i++) |
+          |---------------------------------------------------|
+          |                                                   |
+          |  if (old_dp <= new_dp) {                          |
+          |      continue;                                    |
+          |  }                                                |
+          |                                                   |
+          |  dp[rest][neigh] = new_dp;                        |
+          |  pq.push({neigh, new_dp});                        |
+          | }                                                 |
+          +---------------------------------------------------+
+    
+
+
+
+    ---------------------------MAGAZIN--------------------------------
+
+    COMPLEXITY: O(m + n + q)
+
+    IDEA: Create depth first search traversal and for each query
+           start from the source given and go steps nodes further
+           in the subtree of the source.
+
+        We create a depth first search traversal and we store the
+    nodes in the order they are visited. We also store the number
+    of kids in the subtree of each node. We do that by calculating
+    the current node number of kids as the sum of the number of kids
+    of each of its neighbors plus 1 plus the number of kids he himself
+    has.
+
+        We iterate through the queries and for each query we start
+    from the source given and go steps nodes further in the subtree
+    of the source. We do that by finding the index of the source in
+    the traversal. If we exceed the number of kids of that node we
+    simply put -1 as the result since we would leave the graph with
+    that number of steps.
+
+
+                     +----------------------+
+                     |      get_result      |
+                     +----------------------+
+                               |
+                               v
+          +---------------------------------------------------+
+          |                     result                        |
+          |                                                   |
+          |   +----------------------------+                  |
+          |   |        visited             |                  |
+          |   |        number_of_children  |                  |
+          |   |        pos                 |                  |
+          |   +----------------------------+                  |
+          |                                                   |
+          |        Initialize visited, number_of_children,    |
+          |              and pos vectors                      |
+          |                                                   |
+          |                                                   |
+          |         +-----------------------------------+     |
+          |         |            DFS(1)                 |     |
+          |         +-----------------------------------+     |
+          |                                                   |
+          |         +-----------------------------------+     |
+          |         |     Create pos array               |    |
+          |         |     pos[i] = position of node i    |    |
+          |         +-----------------------------------+     |
+          |                                                   |
+          |                                                   |
+          |         +------------------------------------+    |
+          |         |       For each query               |    |
+          |         |------------------------------------|    |
+          |         |                                    |    |
+          |         |  Get source and steps              |    |
+          |         |                                    |    |
+          |         |  If steps > number_of_children[src]|    |
+          |         |                                    |    |
+          |         |     Set dest = -1                  |    |
+          |         |                                    |    |
+          |         |  Else                              |    |
+          |         |     Set dest = dfs[pos[src]+steps] |    |
+          |         |                                    |    |
+          |         |  Add dest to result                |    |
+          |         +------------------------------------+    |
+          |                                                   |
+          |                                                   |
+          |                  Return result                    |
+          +---------------------------------------------------+
+
+
+    ------------------------------------------------------------------
+
+
+
+
+------------------------------------------------------------------------------
+
+_____________Comments_____________
+
+
+	The implementation could have been done faster and better if information
+about graph algorithms would have been more accessible and I would
+have had more experience with them. The problems were suitable, but with
+the third problem had very restrictive tests and should have been more loose
+on time or test dimensions.
+
+	The project was very useful in helping me learn how to understand and solve
+dfs, bfs, Dijkstra, topological sorts, Tarjan/SCC algorithms and understanding
+the logic behind but I do agree that more problems with less difficulty would 
+have been better off to learn these techniques.
+
+------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------
+
+
+Resources:
+
+https://ocw.cs.pub.ro/courses/pa/skel_graph
+https://ocw.cs.pub.ro/courses/pa/laboratoare/laborator-06
+https://ocw.cs.pub.ro/courses/pa/laboratoare/laborator-07
+https://ocw.cs.pub.ro/courses/pa/laboratoare/laborator-08
+https://ocw.cs.pub.ro/courses/pa/laboratoare/laborator-09
+
+
+-----------------------------------------------------------------------------
