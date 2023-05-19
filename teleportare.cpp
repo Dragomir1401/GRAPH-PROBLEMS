@@ -74,10 +74,8 @@ struct BinaryHeap {
 };
 
 static constexpr int NMAX = (int)1e5 + 5;
-static constexpr int MAX_PERIOD = (int)8;
 static constexpr long DP_MAX = 1e14;
-static constexpr int COST_MOD = 360;
-long dp[COST_MOD][NMAX];
+int cmmmc_period = 1;
 
 class Task {
 	public:
@@ -94,14 +92,22 @@ class Task {
 		vector<pair<int, int>> special_adj[NMAX];
 		BinaryHeap pq;
 
+		int cmmmc(int a, int b) {
+			// Calculate cmmmc
+			int r;
+			int x = a;
+			int y = b;
+			while (b != 0) {
+				r = a % b;
+				a = b;
+				b = r;
+			}
+			return x * y / a;
+		}
+
 		void read_input() {
 			ifstream fin("teleportare.in");
 			fin >> nr_nodes >> nr_Edges >> nr_special_Edges;
-
-			for (int i = 0; i < NMAX; i++) {
-				adj[i].reserve(nr_Edges);
-				special_adj[i].reserve(nr_special_Edges);
-			}
 
 			// Read normal Edges
 			for (int i = 1, x, y, z; i <= nr_Edges; i++) {
@@ -111,29 +117,39 @@ class Task {
 				adj[y].push_back({x, z});
 			}
 
+			// Calculate cmmmc_period
+			int last_period = 1;
+
 			// Read special Edges
 			for (int i = 1, x, y, z; i <= nr_special_Edges; i++) {
 				// Node, neighbour, period
 				fin >> x >> y >> z;
 				special_adj[x].push_back({y, z});
 				special_adj[y].push_back({x, z});
+
+				// Calculate cmmmc_period
+				cmmmc_period = cmmmc(z, last_period);
+
+				// Update last_period
+				last_period = cmmmc_period;
 			}
 
 			fin.close();
 		}
 
-		void initialise_dp() {
-			// Flatten and fill the 2D array
-			std::fill(&dp[0][0], &dp[0][0] + sizeof(dp) / sizeof(dp[0][0]), DP_MAX);
+		void initialise_dp(std::vector<std::vector<long>>& dp) {
+			// Initialise dp
+    		dp = std::vector<std::vector<long>>(cmmmc_period,
+				 std::vector<long>(nr_nodes + 1, DP_MAX));
 
 			// Set dp[0][1] to 0
 			dp[0][1] = 0;
 		}
 
-		long find_min_dp() {
+		long find_min_dp(vector<vector<long>> &dp) {
 			// Find the minimum dp value
 			long min = DP_MAX;
-			for (long unsigned int i = 0; i < COST_MOD; i++) {
+			for (int i = 0; i < cmmmc_period; i++) {
 				if (dp[i][nr_nodes] < min) {
 					min = dp[i][nr_nodes];
 				}
@@ -141,7 +157,8 @@ class Task {
 			return min;
 		}
 
-		void update_dp_normal_edge(int node, long cost, int cost_mod) {
+		void update_dp_normal_edge(int node, long cost, int cost_mod,
+								   vector<vector<long>> &dp) {
 			for (int i = 0; i < (int)adj[node].size(); i++) {
 				// Get the normal edge node and cost
 				int neigh = adj[node][i].first;
@@ -149,11 +166,11 @@ class Task {
 
 				// Calculate the new cost and dp
 				long new_cost = cost + edge_cost;
-				int rest = new_cost % COST_MOD;
+				int rest = new_cost % cmmmc_period;
 				long old_dp = dp[rest][neigh];
 				long new_dp = dp[cost_mod][node] + edge_cost;
 
-				// Check if we can improve dp value
+				// Check if we cannot improve dp value
 				if (old_dp <= new_dp) {
 					continue;
 				}
@@ -164,10 +181,11 @@ class Task {
 			}
 		}
 
-		void update_dp_special_edge(int node, long cost, int cost_mod) {
+		void update_dp_special_edge(int node, long cost, int cost_mod,
+								    vector<vector<long>> &dp) {
 			int teleport_cost = 1;
 			long new_cost = cost + teleport_cost;
-			int rest = new_cost % COST_MOD;
+			int rest = new_cost % cmmmc_period;
 
 			// For period in periods
 			for (int i = 0; i < (int)special_adj[node].size(); i++) {
@@ -184,7 +202,7 @@ class Task {
 				long old_dp = dp[rest][neigh];
 				long new_dp = dp[cost_mod][node] + teleport_cost;
 
-				// Check if we can improve dp value
+				// Check if we cannot improve dp value
 				if (old_dp <= new_dp) {
 					continue;
 				}
@@ -196,8 +214,11 @@ class Task {
 		}
 
 		long get_result() {
+			// Declare dp
+			vector<vector<long>> dp(cmmmc_period, vector<long>(NMAX));
+
 			// Initialise dp
-			initialise_dp();
+			initialise_dp(dp);
 
 			// Push the first node in the queue
 			pq.push({1, 0});
@@ -208,8 +229,10 @@ class Task {
 				long cost = pq.top().cost;
 				pq.pop();
 
-				int cost_mod = cost % COST_MOD;
+				// Calculate popped node cost mod max_period
+				int cost_mod = cost % cmmmc_period;
 
+				// If dp cannot be improved, continue
 				if (cost > dp[cost_mod][node]) {
 					continue;
 				}
@@ -220,11 +243,12 @@ class Task {
 				}
 
 				// Update dp for normal and special Edges
-				update_dp_normal_edge(node, cost, cost_mod);
-				update_dp_special_edge(node, cost, cost_mod);
+				update_dp_normal_edge(node, cost, cost_mod, dp);
+				update_dp_special_edge(node, cost, cost_mod, dp);
 			}
 
-			return find_min_dp();
+			// Find the minimum dp value
+			return find_min_dp(dp);
 		}
 
 		void
